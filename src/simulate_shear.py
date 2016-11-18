@@ -97,7 +97,7 @@ def main(outdir, true_constants, ndraws):
 
 if __name__ == '__main__':
     outdir = sys.argv[1]
-    true_constants = Constants(H0=0.70, OmegaM=0.303, Ode0 = 0.697.
+    true_constants = Constants(H0=0.70, OmegaM=0.303, Ode0 = 0.697,
                                sigma8=0.815, Ob0 = 0.045)
     ndraws = int(sys.argv[2])
 
