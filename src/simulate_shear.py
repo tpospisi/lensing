@@ -84,10 +84,10 @@ def main(outdir, true_constants, redshift, ndraws, noise_sd):
     """
 
     g1, g2 = simulate_shear(true_constants, redshift, noise_sd=noise_sd, seed=0)
-    write_to_file("draw-0.hdf5", true_constants, g1, g2)
+    write_to_file(outdir + "draw-0.hdf5", true_constants, g1, g2)
 
     for ii in range(1, ndraws + 1):
-        fname = "draw-{}.hdf5".format(ii)
+        fname = outdir + "draw-{}.hdf5".format(ii)
         constants = draw_constants()
         g1, g2 = simulate_shear(constants, redshift, noise_sd=noise_sd, seed=ii)
         
