@@ -98,9 +98,9 @@ def write_to_file(fname, constants, g1, g2):
 
     h5f.create_dataset('g1', data = g1)
     h5f.create_dataset('g2', data = g2)
-    h5f.create_dataset('constants', data = np.array([self.H0, self.OmegaM,
-                                                     self.Ode0, self.sigma8,
-                                                     self.Ob0]))
+    h5f.create_dataset('constants', data = np.array([constants.H0, constants.OmegaM,
+                                                     constants.Ode0, constants.sigma8,
+                                                     constants.Ob0]))
     
     h5f.close()
 
