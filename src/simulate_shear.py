@@ -1,10 +1,12 @@
 """Generates ABC draws of shear maps from the prior distribution"""
 
-import random
-import sys
 import galsim
+import h5py
 from lenstools.simulations import Nicaea
 import numpy as np
+import random
+import sys
+
 
 class Constants:
     """Class for cosmological constants"""
@@ -18,11 +20,6 @@ class Constants:
     def nicaea_object(self):
         return Nicaea(H0=self.H0, Om0=self.OmegaM, Ode0=self.Ode0, sigma8=self.sigma8, Ob0=self.Ob0)
 
-    def write_to_file(self, fname):
-        np.savetxt(fname, np.array([self.H0, self.OmegaM,
-                                    self.Ode0,
-                                    self.sigma8,
-                                    self.Ob0]))
 
 def simulate_shear(constants, redshift, noise_sd=0.0, seed=0):
     """Takes cosmological parameters, generates a shear map, and adds
@@ -87,17 +84,29 @@ def main(outdir, true_constants, redshift, ndraws, noise_sd):
     """
 
     g1, g2 = simulate_shear(true_constants, redshift, noise_sd=noise_sd, seed=0)
-    np.savetxt(outdir + "/g1-0.csv", g1)
-    np.savetxt(outdir + "/g2-0.csv", g2)
+    write_to_file("draw-0.hdf5", true_constants, g1, g2)
 
-    for ii in range(ndraws):
+    for ii in range(1, ndraws + 1):
+        fname = "draw-{}.hdf5".format(ii)
         constants = draw_constants()
         g1, g2 = simulate_shear(constants, redshift, noise_sd=noise_sd, seed=ii)
-        np.savetxt(outdir + "/g1-{}.csv".format(ii + 1), g1)
-        np.savetxt(outdir + "/g2-{}.csv".format(ii + 1), g2)
+        
+        write_to_file(fname, constants, g1, g2)
 
+def write_to_file(fname, constants, g1, g2):
+    h5f = h5py.File(fname, "w")
+
+    h5f.create_dataset('g1', data = g1)
+    h5f.create_dataset('g2', data = g2)
+    h5f.create_dataset('constants', data = np.array([self.H0, self.OmegaM,
+                                                     self.Ode0, self.sigma8,
+                                                     self.Ob0]))
+    
+    h5f.close()
 
 def draw_constants():
+    """ Draws cosmological constants from prior distribution"""
+    
     OmegaM = random.uniform(0.1, 0.8)
     sigma8 = random.uniform(0.5, 1.0)
 

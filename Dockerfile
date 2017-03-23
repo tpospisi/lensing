@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python python-dev python-distribute python-pip python-scipy \
     scons tar wget
 
-RUN pip install wheel numpy pyfits pyyaml starlink-pyast treecorr mpi4py matplotlib
+RUN pip install wheel numpy pyfits pyyaml starlink-pyast treecorr mpi4py matplotlib h5py
 
 RUN git clone https://github.com/tpospisi/lensing.git
 WORKDIR "/lensing/deps"
