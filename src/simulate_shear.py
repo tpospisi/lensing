@@ -47,7 +47,7 @@ def run_treecorr(x, y, g1, g2, min_sep, max_sep, nbins = 10):
     os.remove('temp.fits')
 
     return {'log_r' : gg.logr,
-            'xpim' : np.hstack((gg.xip, gg.xim))}
+            'xipm' : np.hstack((gg.xip, gg.xim))}
 
 
 def simulate_shear(constants, redshift, noise_sd=0.0, seed=0):
