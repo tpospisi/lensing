@@ -6,7 +6,7 @@ from lenstools.simulations import Nicaea
 import numpy as np
 import random
 import sys
-
+import treecorr
 
 class Constants:
     """Class for cosmological constants"""
@@ -20,6 +20,46 @@ class Constants:
     def nicaea_object(self):
         return Nicaea(H0=self.H0, Om0=self.OmegaM, Ode0=self.Ode0, sigma8=self.sigma8, Ob0=self.Ob0)
 
+import pyfits
+import numpy as np
+import os
+import treecorr
+
+def treecorr(g1, g2):
+    """Run treecorr on GalSim shear grid routine"""
+    # Use fits binary table for faster I/O.
+
+    grid_nx = 100
+    # length of grid in one dimension (degrees)
+    theta = 10.0
+    # grid spacing
+    dtheta = theta/grid_nx
+
+    grid_range = dtheta * np.arange(grid_nx)
+    
+    x, y = np.meshgrid(grid_range, grid_range)
+    
+    assert x.shape == y.shape
+    assert x.shape == g1.shape
+    assert x.shape == g2.shape
+    x_col = pyfits.Column(name='x', format='1D', array=x.flatten() )
+    y_col = pyfits.Column(name='y', format='1D', array=y.flatten() )
+    g1_col = pyfits.Column(name='g1', format='1D', array=g1.flatten() )
+    g2_col = pyfits.Column(name='g2', format='1D', array=g2.flatten() )
+    cols = pyfits.ColDefs([x_col, y_col, g1_col, g2_col])
+    table = pyfits.new_table(cols)
+    phdu = pyfits.PrimaryHDU()
+    hdus = pyfits.HDUList([phdu,table])
+    hdus.writeto('temp.fits',clobber=True)
+    # Define the treecorr catalog object.
+    cat = treecorr.Catalog('temp.fits',x_units='degrees',y_units='degrees', x_col='x',y_col='y',g1_col='g1',g2_col='g2')
+    gg = treecorr.GGCorrelation(min_sep=min_sep, max_sep=max_sep, nbins = nbins, sep_units='degrees', bin_slop = 0.2)
+    gg.process(cat)
+    os.remove('temp.fits')
+
+    stats = {'log_r' : gg.logr,
+             'xpim' : np.hstack((gg.xip, gg.sim))}
+    return stats
 
 def simulate_shear(constants, redshift, noise_sd=0.0, seed=0):
     """Takes cosmological parameters, generates a shear map, and adds
@@ -90,10 +130,12 @@ def main(outdir, true_constants, redshift, ndraws, noise_sd):
         fname = outdir + "draw-{}.hdf5".format(ii)
         constants = draw_constants()
         g1, g2 = simulate_shear(constants, redshift, noise_sd=noise_sd, seed=ii)
+        stats = treecorr(g1, g2)
         
-        write_to_file(fname, constants, g1, g2)
+        write_to_file(fname, constants, g1, g2, stats)
+        
 
-def write_to_file(fname, constants, g1, g2):
+def write_to_file(fname, constants, g1, g2, stats):
     h5f = h5py.File(fname, "w")
 
     h5f.create_dataset('g1', data = g1)
@@ -101,6 +143,8 @@ def write_to_file(fname, constants, g1, g2):
     h5f.create_dataset('constants', data = np.array([constants.H0, constants.OmegaM,
                                                      constants.Ode0, constants.sigma8,
                                                      constants.Ob0]))
+    h5f.create_dataset('log_r', data = stats['log_r'])
+    h5f.create_dataset('xipm', data = stats['xipm'])
     
     h5f.close()
 
