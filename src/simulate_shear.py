@@ -25,20 +25,9 @@ import numpy as np
 import os
 import treecorr
 
-def treecorr(g1, g2):
+def treecorr(x, y, g1, g2):
     """Run treecorr on GalSim shear grid routine"""
-    # Use fits binary table for faster I/O.
-
-    grid_nx = 100
-    # length of grid in one dimension (degrees)
-    theta = 10.0
-    # grid spacing
-    dtheta = theta/grid_nx
-
-    grid_range = dtheta * np.arange(grid_nx)
-    
-    x, y = np.meshgrid(grid_range, grid_range)
-    
+    # Use fits binary table for faster I/O.    
     assert x.shape == y.shape
     assert x.shape == g1.shape
     assert x.shape == g2.shape
@@ -57,9 +46,9 @@ def treecorr(g1, g2):
     gg.process(cat)
     os.remove('temp.fits')
 
-    stats = {'log_r' : gg.logr,
-             'xpim' : np.hstack((gg.xip, gg.sim))}
-    return stats
+    return {'log_r' : gg.logr,
+            'xpim' : np.hstack((gg.xip, gg.sim))}
+
 
 def simulate_shear(constants, redshift, noise_sd=0.0, seed=0):
     """Takes cosmological parameters, generates a shear map, and adds
@@ -108,7 +97,11 @@ def simulate_shear(constants, redshift, noise_sd=0.0, seed=0):
     g1_noisy = np.add(g1_r, g1_noise_grid.array)
     g2_noisy = np.add(g2_r, g2_noise_grid.array)
 
-    return g1_noisy, g2_noisy
+    grid_range = dtheta * np.arange(grid_nx)
+    x, y = np.meshgrid(grid_range, grid_range)
+    stats = treecorr(x, y, g1, g2)    
+    
+    return g1_noisy, g2_noisy, stats
 
 def main(outdir, true_constants, redshift, ndraws, noise_sd):
     """Simulates shear images using ABC.
@@ -123,19 +116,19 @@ def main(outdir, true_constants, redshift, ndraws, noise_sd):
         g1-1.csv, and so on.
     """
 
-    g1, g2 = simulate_shear(true_constants, redshift, noise_sd=noise_sd, seed=0)
+    g1, g2, stats = simulate_shear(true_constants, redshift, noise_sd=noise_sd, seed=0)
     write_to_file(outdir + "draw-0.hdf5", true_constants, g1, g2)
 
     for ii in range(1, ndraws + 1):
         fname = outdir + "draw-{}.hdf5".format(ii)
         constants = draw_constants()
-        g1, g2 = simulate_shear(constants, redshift, noise_sd=noise_sd, seed=ii)
-        stats = treecorr(g1, g2)
+        g1, g2, stats = simulate_shear(constants, redshift, noise_sd=noise_sd, seed=ii)
+
         
         write_to_file(fname, constants, g1, g2, stats)
         
 
-def write_to_file(fname, constants, g1, g2, stats):
+def write_to_file(fname, constants, g1, g2, stats = None):
     h5f = h5py.File(fname, "w")
 
     h5f.create_dataset('g1', data = g1)
@@ -143,8 +136,9 @@ def write_to_file(fname, constants, g1, g2, stats):
     h5f.create_dataset('constants', data = np.array([constants.H0, constants.OmegaM,
                                                      constants.Ode0, constants.sigma8,
                                                      constants.Ob0]))
-    h5f.create_dataset('log_r', data = stats['log_r'])
-    h5f.create_dataset('xipm', data = stats['xipm'])
+    if stats is not None:
+        h5f.create_dataset('log_r', data = stats['log_r'])
+        h5f.create_dataset('xipm', data = stats['xipm'])
     
     h5f.close()
 
