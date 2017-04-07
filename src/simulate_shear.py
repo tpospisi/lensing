@@ -25,9 +25,9 @@ import numpy as np
 import os
 import treecorr
 
-def run_treecorr(x, y, g1, g2):
+def run_treecorr(x, y, g1, g2, min_sep, max_sep):
     """Run treecorr on GalSim shear grid routine"""
-    # Use fits binary table for faster I/O.    
+    # Use fits binary table for faster I/O.   
     assert x.shape == y.shape
     assert x.shape == g1.shape
     assert x.shape == g2.shape
@@ -97,9 +97,11 @@ def simulate_shear(constants, redshift, noise_sd=0.0, seed=0):
     g1_noisy = np.add(g1_r, g1_noise_grid.array)
     g2_noisy = np.add(g2_r, g2_noise_grid.array)
 
+    min_sep = dtheta
+    max_sep = grid_nx * np.sqrt(2) * dtheta
     grid_range = dtheta * np.arange(grid_nx)
     x, y = np.meshgrid(grid_range, grid_range)
-    stats = run_treecorr(x, y, g1, g2)    
+    stats = run_treecorr(x, y, g1, g2, min_sep, max_sep)    
     
     return g1_noisy, g2_noisy, stats
 
