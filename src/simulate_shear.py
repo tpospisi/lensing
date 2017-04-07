@@ -119,7 +119,7 @@ def main(outdir, true_constants, redshift, ndraws, noise_sd):
     """
 
     g1, g2, stats = simulate_shear(true_constants, redshift, noise_sd=noise_sd, seed=0)
-    write_to_file(outdir + "draw-0.hdf5", true_constants, g1, g2)
+    write_to_file(outdir + "draw-0.hdf5", true_constants, g1, g2, stats)
 
     for ii in range(1, ndraws + 1):
         fname = outdir + "draw-{}.hdf5".format(ii)
@@ -130,7 +130,7 @@ def main(outdir, true_constants, redshift, ndraws, noise_sd):
         write_to_file(fname, constants, g1, g2, stats)
         
 
-def write_to_file(fname, constants, g1, g2, stats = None):
+def write_to_file(fname, constants, g1, g2, stats):
     h5f = h5py.File(fname, "w")
 
     h5f.create_dataset('g1', data = g1)
@@ -138,9 +138,8 @@ def write_to_file(fname, constants, g1, g2, stats = None):
     h5f.create_dataset('constants', data = np.array([constants.H0, constants.OmegaM,
                                                      constants.Ode0, constants.sigma8,
                                                      constants.Ob0]))
-    if stats is not None:
-        h5f.create_dataset('log_r', data = stats['log_r'])
-        h5f.create_dataset('xipm', data = stats['xipm'])
+    h5f.create_dataset('log_r', data = stats['log_r'])
+    h5f.create_dataset('xipm', data = stats['xipm'])
     
     h5f.close()
 
