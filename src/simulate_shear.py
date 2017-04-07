@@ -25,9 +25,9 @@ import numpy as np
 import os
 import treecorr
 
-def run_treecorr(x, y, g1, g2, min_sep, max_sep):
+def run_treecorr(x, y, g1, g2, min_sep, max_sep, nbins = 10):
     """Run treecorr on GalSim shear grid routine"""
-    # Use fits binary table for faster I/O.   
+    # Use fits binary table for faster I/O.
     assert x.shape == y.shape
     assert x.shape == g1.shape
     assert x.shape == g2.shape
