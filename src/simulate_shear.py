@@ -1,16 +1,15 @@
 """Generates ABC draws of shear maps from the prior distribution"""
 
+import csv
 import os
 import random
 import sys
 
 import galsim
-import h5py
 from lenstools.simulations import Nicaea
 import numpy as np
 import pyfits
 import treecorr
-
 
 class Constants:
     """Class for cosmological constants"""
@@ -24,13 +23,6 @@ class Constants:
     def nicaea_object(self):
         return Nicaea(H0=self.H0, Om0=self.omega_m, Ode0=self.Ode0,
                       sigma8=self.sigma_8, Ob0=self.Ob0)
-
-    def write_to_hdf5(self, hdf_file):
-        hdf_file.create_dataset('constants', data=np.array([self.H0,
-                                                            self.omega_m,
-                                                            self.Ode0,
-                                                            self.sigma_8,
-                                                            self.Ob0]))
 
 def run_treecorr(x, y, g1, g2, min_sep, max_sep, nbins=10):
     """Run treecorr on GalSim shear grid routine"""
@@ -114,7 +106,7 @@ def simulate_shear(constants, redshift, noise_sd=0.0, seed=0):
 
     return g1_noisy, g2_noisy, stats
 
-def main(outdir, true_constants, redshift, ndraws, noise_sd):
+def main(outfile, true_constants, redshift, ndraws, noise_sd):
     """Simulates shear images using ABC.
 
     Inputs:
@@ -127,28 +119,22 @@ def main(outdir, true_constants, redshift, ndraws, noise_sd):
         g1-1.csv, and so on.
     """
 
-    g1, g2, stats = simulate_shear(true_constants, redshift, noise_sd=noise_sd, seed=0)
-    write_to_file(outdir + "draw-0.hdf5", true_constants, g1, g2, stats)
+    with open(outfile, "wb") as f:
+        writer = csv.writer(f, delimiter=",")
+        writer.writerow(["sigma_8", "omega_m"] + ["X" + str(ii + 1) for ii in range(20)])
 
-    for sim in range(1, ndraws + 1):
-        fname = outdir + "draw-{}.hdf5".format(sim)
-        constants = draw_constants()
-        g1, g2, stats = simulate_shear(constants, redshift, noise_sd=noise_sd, seed=sim)
+        g1, g2, stats = simulate_shear(true_constants, redshift, noise_sd=noise_sd, seed=0)
+        write_to_csv(writer, true_constants, g1, g2, stats)
 
-        write_to_file(fname, constants, g1, g2, stats)
+        for sim in range(1, ndraws + 1):
+            constants = draw_constants()
+            g1, g2, stats = simulate_shear(constants, redshift, noise_sd=noise_sd, seed=sim)
+
+            write_to_csv(writer, constants, g1, g2, stats)
 
 
-def write_to_file(fname, constants, g1, g2, stats):
-    hdf_file = h5py.File(fname, "w")
-
-    constants.write_to_hdf5(hdf_file)
-
-    hdf_file.create_dataset('g1', data=g1)
-    hdf_file.create_dataset('g2', data=g2)
-    hdf_file.create_dataset('log_r', data=stats['log_r'])
-    hdf_file.create_dataset('xipm', data=stats['xipm'])
-
-    hdf_file.close()
+def write_to_csv(writer, constants, g1, g2, stats):
+    writer.writerow([constants.sigma_8, constants.omega_m] + [xx for xx in stats["xipm"]])
 
 def draw_constants():
     """ Draws cosmological constants from prior distribution"""
