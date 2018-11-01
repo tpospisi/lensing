@@ -1,3 +1,5 @@
+#0!/usr/bin/python3
+
 """Generates ABC draws of shear maps from the prior distribution"""
 
 import csv
@@ -119,7 +121,7 @@ def main(outfile, true_constants, redshift, ndraws, noise_sd):
         g1-1.csv, and so on.
     """
 
-    with open(outfile, "wb") as f:
+    with open(outfile, "w") as f:
         writer = csv.writer(f, delimiter=",")
         writer.writerow(["sigma_8", "omega_m"] + ["X" + str(ii + 1) for ii in range(20)])
 
