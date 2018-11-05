@@ -5,9 +5,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libboost-all-dev libffi-dev libfftw3-3 libfftw3-dev \
     libfreetype6-dev libgsl0-dev libgsl-dev libpng-dev make pkg-config \
     python python-dev python-distribute python3-pip python-scipy \
-    scons tar wget
+    python3-setuptools scons tar wget ssh
 
-RUN pip3 install pyfits pyyaml starlink-pyast treecorr mpi4py matplotlib h5py
+# Install python deps
+RUN pip3 install numpy wheel cython
+RUN pip3 install eigency pyfits pyyaml starlink-pyast treecorr mpi4py matplotlib h5py
 
 RUN git clone https://github.com/tpospisi/lensing.git
 WORKDIR "/lensing/deps"
@@ -20,8 +22,6 @@ RUN ln -s /usr/lib/x86_64-linux-gnu/libgsl.a /usr/lib/libgsl.a && \
     ln -s /usr/lib/x86_64-linux-gnu/libgslcblas.so /usr/lib/libgslcblas.so && \
     ln -s /usr/lib/x86_64-linux-gnu/libfftw3.so /usr/lib/libfftw3.so
 
-# Install python dependencies
-RUN pip3 install numpy eigency cython
 
 # Install TMV
 RUN tar xf v0.73.tar.gz
@@ -37,6 +37,7 @@ RUN cmake .. && make && make install
 # Install GalSim
 RUN pip3 install pybind11
 RUN ln -s /usr/include /usr/local/include
+RUN pip3 install galsim
 
 # Install LensTools
 RUN pip3 install lenstools
