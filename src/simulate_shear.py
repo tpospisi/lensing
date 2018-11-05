@@ -1,4 +1,4 @@
-#0!/usr/bin/python3
+#!/usr/bin/python3
 
 """Generates ABC draws of shear maps from the prior distribution"""
 
@@ -26,7 +26,7 @@ class Constants:
         return Nicaea(H0=self.H0, Om0=self.omega_m, Ode0=self.Ode0,
                       sigma8=self.sigma_8, Ob0=self.Ob0)
 
-def run_treecorr(x, y, g1, g2, min_sep, max_sep, nbins=10):
+def run_treecorr(x, y, g1, g2, min_sep, max_sep, nbins):
     """Run treecorr on GalSim shear grid routine"""
 
     assert x.shape == y.shape
@@ -55,13 +55,14 @@ def run_treecorr(x, y, g1, g2, min_sep, max_sep, nbins=10):
             'xipm' : np.hstack((gg.xip, gg.xim))}
 
 
-def simulate_shear(constants, redshift, noise_sd=0.0, seed=0):
+def simulate_shear(constants, redshift, nbins, noise_sd=0.0, seed=0):
     """Takes cosmological parameters, generates a shear map, and adds
     noise.
 
     Inputs:
         constants: Constants, object for cosmological constants
         redshift: float, the redshift value for the sample
+        nbins: int, the number of bins for the correlation function
         noise_sd: float, the standard deviation for IID Gaussian noise.
         seed: integer, seed for the RNG; if 0 it uses a randomly chosen seed.
 
@@ -104,11 +105,11 @@ def simulate_shear(constants, redshift, noise_sd=0.0, seed=0):
     max_sep = grid_nx * np.sqrt(2) * dtheta
     grid_range = dtheta * np.arange(grid_nx)
     x, y = np.meshgrid(grid_range, grid_range)
-    stats = run_treecorr(x, y, g1, g2, min_sep, max_sep)
+    stats = run_treecorr(x, y, g1, g2, min_sep, max_sep, nbins=nbins)
 
     return g1_noisy, g2_noisy, stats
 
-def main(outfile, true_constants, redshift, ndraws, noise_sd):
+def main(outfile, true_constants, redshift, ndraws, noise_sd, nbins):
     """Simulates shear images using ABC.
 
     Inputs:
@@ -123,14 +124,14 @@ def main(outfile, true_constants, redshift, ndraws, noise_sd):
 
     with open(outfile, "w") as f:
         writer = csv.writer(f, delimiter=",")
-        writer.writerow(["sigma_8", "omega_m"] + ["X" + str(ii + 1) for ii in range(20)])
+        writer.writerow(["sigma_8", "omega_m"] + ["X" + str(ii + 1) for ii in range(nbins * 2)])
 
-        g1, g2, stats = simulate_shear(true_constants, redshift, noise_sd=noise_sd, seed=0)
+        g1, g2, stats = simulate_shear(true_constants, redshift, nbins, noise_sd=noise_sd, seed=0)
         write_to_csv(writer, true_constants, g1, g2, stats)
 
         for sim in range(1, ndraws + 1):
             constants = draw_constants()
-            g1, g2, stats = simulate_shear(constants, redshift, noise_sd=noise_sd, seed=sim)
+            g1, g2, stats = simulate_shear(constants, redshift, nbins, noise_sd=noise_sd, seed=sim)
 
             write_to_csv(writer, constants, g1, g2, stats)
 
@@ -154,5 +155,6 @@ if __name__ == '__main__':
     noise_sd = 0.00811
     redshift = 0.7
     ndraws = int(sys.argv[2])
+    nbins = int(sys.argv[3])
 
-    main(outdir, true_constants, redshift, ndraws, noise_sd)
+    main(outdir, true_constants, redshift, ndraws, noise_sd, nbins)
